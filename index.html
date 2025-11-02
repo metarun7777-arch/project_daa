@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MCM Visualizer — Dark Stylish</title>
+<style>
+  :root{
+    --bg-1:#071021; --bg-2:#0a2130; --card:rgba(255,255,255,0.04);
+    --muted:#9fb1c9; --accent:#06b6d4; --accent-2:#7c3aed;
+    --glass: rgba(255,255,255,0.03);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+    background: linear-gradient(135deg,var(--bg-1),var(--bg-2));
+    color:#e6eef8; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+  .wrap{max-width:1100px;margin:28px auto;padding:22px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  h1{font-size:20px;margin:0}
+  .lead{color:var(--muted);font-size:13px;margin:0}
+
+  .card{
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);
+    box-shadow:0 8px 30px rgba(2,6,23,0.6);
+  }
+
+  .grid{display:grid;gap:16px;grid-template-columns:2fr 1fr;margin-top:16px}
+  .muted{color:var(--muted);font-size:13px}
+  label.small{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+  input[type=text]{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  button{
+    padding:8px 10px;border-radius:8px;border:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    color:white;cursor:pointer;font-weight:600;transition:transform .12s ease,opacity .12s ease;
+  }
+  button.alt{background:#334155}
+  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+  button:active{transform:translateY(1px)}
+  button[disabled]{opacity:.45;cursor:not-allowed}
+
+  .two-cols{display:grid;grid-template-columns:1fr 360px;gap:16px;margin-top:16px}
+  .table-wrap{overflow:auto;background:transparent}
+  table{border-collapse:collapse;font-family:monospace;width:100%}
+  th,td{border:1px solid rgba(255,255,255,0.04);padding:10px;text-align:center;min-width:64px}
+  td.empty{color:var(--muted);background:transparent}
+  td.cell{background:linear-gradient(180deg, rgba(124,58,237,0.06), rgba(124,58,237,0.03));border-radius:6px}
+  td.highlight{outline:3px solid rgba(6,182,212,0.12);box-shadow:0 8px 20px rgba(6,182,212,0.06)}
+  .split{font-size:12px;color:#bcd7e6}
+  .val{font-weight:700}
+
+  .timeline{max-height:340px;overflow:auto;padding:8px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);border:1px solid rgba(255,255,255,0.02)}
+  .step{padding:8px;border-radius:6px;margin-bottom:6px;font-size:13px;background:transparent;cursor:pointer}
+  .step.active{background:linear-gradient(90deg, rgba(6,182,212,0.06), rgba(124,58,237,0.04));}
+
+  .footer{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:12px}
+  .parenthesis{font-family:monospace;background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;color:#cdf0fb}
+
+  .controls-bottom{display:flex;gap:8px;align-items:center;margin-top:8px}
+  input[type=range]{width:160px}
+
+  /* speed presets */
+  .presets{display:flex;gap:8px}
+  .preset-btn{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--muted);cursor:pointer}
+  .preset-btn.active{background:rgba(6,182,212,0.12);color:white;border-color:rgba(6,182,212,0.14)}
+
+  /* progress */
+  .progress-wrap{width:100%;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden;height:12px;margin-top:10px;border:1px solid rgba(255,255,255,0.02)}
+  .progress-bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .2s ease}
+
+  @media (max-width:920px){.grid{grid-template-columns:1fr}.two-cols{grid-template-columns:1fr}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Matrix Chain Multiplication — Stylish Dark</h1>
+        <p class="lead muted">Animated DP table with split indices, speed presets and progress — ready for demo.</p>
+      </div>
+      <div class="muted">DAA Project</div>
+    </header>
+
+    <div class="grid">
+      <!-- Left: Controls -->
+      <div class="card">
+        <label class="small">Matrix dimensions (comma separated). Example: <span class="muted">30,35,15,5,10,20,25</span></label>
+        <input id="dimsInput" type="text" value="30,35,15,5,10,20,25" />
+        <div class="controls">
+          <button id="computeBtn">Compute</button>
+          <button id="playPauseBtn" class="alt" disabled>Play ▶</button>
+          <button id="resetBtn" class="ghost">Reset</button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+          <div style="min-width:72px" class="muted">Speed</div>
+          <div class="presets">
+            <button class="preset-btn" data-ms="700">x1</button>
+            <button class="preset-btn" data-ms="350">x2</button>
+            <button class="preset-btn" data-ms="175">x4</button>
+          </div>
+          <div style="margin-left:auto" class="muted">Steps: <span id="stepsCount">0</span></div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;margin-top:8px">
+          <input id="speedRange" type="range" min="80" max="1500" step="10" value="700" />
+          <div id="speedValue" class="muted" style="min-width:82px">700 ms</div>
+        </div>
+
+        <div class="progress-wrap" aria-hidden="false" title="Progress">
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="muted">Current step</div>
+          <div id="currentMsg" class="parenthesis" style="margin-top:6px">No steps yet — press Compute</div>
+        </div>
+      </div>
+
+      <!-- Right: Final Result -->
+      <div class="card">
+        <div class="muted">Final result</div>
+        <div style="margin-top:8px;font-size:18px;font-weight:700">Minimum multiplications: <span id="minCost">—</span></div>
+        <div style="margin-top:8px" class="muted">Optimal parenthesization:</div>
+        <div id="parenthesisView" class="parenthesis" style="margin-top:8px">—</div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button id="copyParen" class="ghost">Copy Parenthesis</button>
+          <button id="copyJSON" class="ghost">Copy JSON</button>
+        </div>
+        <div style="margin-top:12px;color:var(--muted);font-size:13px">Tip: use Play to auto-animate through steps; click timeline to jump.</div>
+      </div>
+    </div>
+
+    <!-- Table + Timeline -->
+    <div class="card" style="margin-top:16px">
+      <div class="two-cols">
+        <div>
+          <div class="muted" style="margin-bottom:8px">DP Table (m) & split indices (k)</div>
+          <div class="table-wrap" id="tableContainer" style="padding:10px"></div>
+        </div>
+        <div>
+          <div class="muted" style="margin-bottom:8px">Step timeline</div>
+          <div class="timeline" id="timeline"></div>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <button id="stepBack" class="ghost">◀ Prev</button>
+            <button id="stepFwd" class="ghost">Next ▶</button>
+            <div style="margin-left:auto" class="muted">Progress: <span id="progressText">0%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="muted">Click any step to jump to it. Controls disabled while auto-playing.</div>
+        <div class="muted">Made with plain HTML/CSS/JS</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ---- Utilities ---- */
+function deepCopy(x){ return JSON.parse(JSON.stringify(x)); }
+function el(id){ return document.getElementById(id); }
+
+/* ---- State ---- */
+let dims = [30,35,15,5,10,20,25];
+let m = [], s = [], steps = [], stepIndex = 0;
+let timer = null, running = false;
+
+/* ---- DOM refs ---- */
+const dimsInput = el('dimsInput');
+const computeBtn = el('computeBtn');
+const playPauseBtn = el('playPauseBtn');
+const resetBtn = el('resetBtn');
+const tableContainer = el('tableContainer');
+const timeline = el('timeline');
+const currentMsg = el('currentMsg');
+const minCost = el('minCost');
+const parenthesisView = el('parenthesisView');
+const stepsCount = el('stepsCount');
+const stepBack = el('stepBack');
+const stepFwd = el('stepFwd');
+const speedRange = el('speedRange');
+const speedValue = el('speedValue');
+const progressBar = el('progressBar');
+const progressText = el('progressText');
+const presetBtns = document.querySelectorAll('.preset-btn');
+const copyParen = el('copyParen');
+const copyJSON = el('copyJSON');
+
+/* ---- Parsing ---- */
+function parseDims(text){
+  const arr = text.split(',').map(x=>parseInt(x.trim(),10)).filter(n=>!isNaN(n));
+  return arr.length >= 2 ? arr : null;
+}
+
+/* ---- MCM computation that records snapshots ---- */
+function computeMCM(arr){
+  const n = arr.length - 1;
+  const m = Array.from({length:n+1}, ()=>Array(n+1).fill(Infinity));
+  const s = Array.from({length:n+1}, ()=>Array(n+1).fill(null));
+  const snapshots = [];
+
+  for(let i=1;i<=n;i++){
+    m[i][i] = 0;
+    snapshots.push({type:'init', i, j:i, m:deepCopy(m), s:deepCopy(s), msg:`m[${i}][${i}] = 0`});
+  }
+
+  for(let len=2; len<=n; len++){
+    for(let i=1; i<=n-len+1; i++){
+      const j = i + len - 1;
+      m[i][j] = Infinity;
+      snapshots.push({type:'start', i, j, m:deepCopy(m), s:deepCopy(s), msg:`Compute m[${i}][${j}]`});
+      for(let k=i; k<=j-1; k++){
+        const q = m[i][k] + m[k+1][j] + arr[i-1]*arr[k]*arr[j];
+        snapshots.push({type:'consider', i, j, k, q, m:deepCopy(m), s:deepCopy(s), msg:`Consider k=${k}, cost=${q}`});
+        if(q < m[i][j]){
+          m[i][j] = q;
+          s[i][j] = k;
+          snapshots.push({type:'update', i, j, k, q, m:deepCopy(m), s:deepCopy(s), msg:`Update m[${i}][${j}] = ${q} (k=${k})`});
+        }
+      }
+    }
+  }
+
+  return {m, s, snapshots};
+}
+
+/* ---- Parenthesis builder ---- */
+function formatParenthesis(sTable){
+  const n = sTable.length - 1;
+  if(n <= 0) return '';
+  function build(i,j){
+    if(i===j) return `A${i}`;
+    const k = sTable[i][j];
+    return `(${build(i,k)} x ${build(k+1,j)})`;
+  }
+  try { return build(1,n); } catch(e) { return '—'; }
+}
+
+/* ---- Render DP / split table ---- */
+function renderTables(mt, st, highlight){
+  const n = dims.length - 1;
+  const table = document.createElement('table');
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  headRow.appendChild(document.createElement('th'));
+  for(let j=1;j<=n;j++){ const th=document.createElement('th'); th.textContent = `j=${j}`; headRow.appendChild(th); }
+  thead.appendChild(headRow); table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  for(let i=1;i<=n;i++){
+    const tr = document.createElement('tr');
+    const th = document.createElement('th'); th.textContent = `i=${i}`; tr.appendChild(th);
+    for(let j=1;j<=n;j++){
+      const td = document.createElement('td');
+      if(j < i){ td.className='empty'; td.textContent='—'; }
+      else {
+        const val = (mt && mt[i] && (mt[i][j]===Infinity || mt[i][j]===null)) ? '∞' : (mt[i] && mt[i][j] !== undefined ? mt[i][j] : '—');
+        td.className = 'cell';
+        if(highlight && highlight.i===i && highlight.j===j) td.classList.add('highlight');
+        td.innerHTML = `<div class="val">${val}</div><div class="split">${(st && st[i] && st[i][j]) ? 'k=' + st[i][j] : ''}</div>`;
+      }
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  tableContainer.innerHTML = '';
+  tableContainer.appendChild(table);
+}
+
+/* ---- Timeline render ---- */
+function renderTimeline(){
+  timeline.innerHTML = '';
+  steps.forEach((st, idx) => {
+    const div = document.createElement('div');
+    div.className = 'step' + (idx === stepIndex ? ' active' : '');
+    div.innerHTML = `<div style="font-weight:700">#${idx} — ${st.msg}</div>` + (st.type === 'consider' ? `<div style="font-size:12px;color:var(--muted)">k=${st.k}, cost=${st.q}</div>` : '');
+    div.addEventListener('click', () => { pauseAutoPlay(); stepIndex = idx; applyStep(); });
+    timeline.appendChild(div);
+  });
+}
+
+/* ---- Apply current step snapshot ---- */
+function applyStep(){
+  const st = steps[stepIndex];
+  if(!st){ currentMsg.textContent = 'No steps'; renderTables([],[],null); minCost.textContent = '—'; parenthesisView.textContent = '—'; stepsCount.textContent = steps.length; updateProgress(); renderTimeline(); return; }
+  currentMsg.textContent = st.msg;
+  renderTables(st.m, st.s, {i:st.i, j:st.j});
+  minCost.textContent = (st.m && st.m[1] && st.m[1][dims.length - 1]) ? st.m[1][dims.length-1] : '—';
+  parenthesisView.textContent = (st.s && st.s.length > 0) ? formatParenthesis(st.s) : '—';
+  stepsCount.textContent = steps.length;
+  updateProgress();
+  renderTimeline();
+}
+
+/* ---- Compute and initialize ---- */
+function runCompute(){
+  const parsed = parseDims(dimsInput.value);
+  if(!parsed){ alert('Enter at least two integers separated by commas'); return; }
+  dims = parsed;
+  const res = computeMCM(dims);
+  m = res.m; s = res.s; steps = res.snapshots; stepIndex = 0;
+  applyStep();
+  playPauseBtn.disabled = false;
+}
+
+/* ---- Progress bar ---- */
+function updateProgress(){
+  if(steps.length <= 1){ progressBar.style.width = '0%'; progressText.textContent = '0%'; return; }
+  const pct = Math.round((stepIndex / (steps.length - 1)) * 100);
+  progressBar.style.width = pct + '%';
+  progressText.textContent = pct + '%';
+}
+
+/* ---- Auto-play controls ---- */
+function getSpeedMs(){ return Number(speedRange.value); }
+
+function startAutoPlay(loop=false){
+  if(steps.length === 0) return;
+  running = true;
+  toggleRunningState(true);
+  playPauseBtn.textContent = 'Pause ⏸';
+  if(timer) clearInterval(timer);
+  timer = setInterval(() => {
+    if(stepIndex < steps.length - 1){
+      stepIndex++;
+      applyStep();
+    } else {
+      if(loop){ stepIndex = 0; applyStep(); }
+      else { pauseAutoPlay(); }
+    }
+  }, getSpeedMs());
+}
+
+function pauseAutoPlay(){
+  running = false;
+  if(timer) clearInterval(timer);
+  playPauseBtn.textContent = 'Play ▶';
+  toggleRunningState(false);
+}
+
+/* ---- Toggle disabling some controls while running ---- */
+function toggleRunningState(isRunning){
+  computeBtn.disabled = isRunning;
+  resetBtn.disabled = isRunning;
+  // allow speed changes and presets while running
+  stepBack.disabled = isRunning;
+  stepFwd.disabled = isRunning;
+}
+
+/* ---- Step navigation ---- */
+function prevStep(){ if(steps.length===0) return; pauseAutoPlay(); stepIndex = Math.max(0, stepIndex - 1); applyStep(); }
+function nextStep(){ if(steps.length===0) return; pauseAutoPlay(); stepIndex = Math.min(steps.length - 1, stepIndex + 1); applyStep(); }
+function resetAll(){ pauseAutoPlay(); steps = []; m = []; s = []; stepIndex = 0; applyStep(); playPauseBtn.disabled = true; }
+
+/* ---- Event bindings ---- */
+computeBtn.addEventListener('click', runCompute);
+playPauseBtn.addEventListener('click', () => { if(running) pauseAutoPlay(); else startAutoPlay(); });
+resetBtn.addEventListener('click', () => { pauseAutoPlay(); runCompute(); stepIndex = 0; applyStep(); }); // reset to computed start
+stepBack.addEventListener('click', prevStep);
+stepFwd.addEventListener('click', nextStep);
+
+speedRange.addEventListener('input', () => {
+  speedValue.textContent = speedRange.value + ' ms';
+  if(running){ pauseAutoPlay(); startAutoPlay(); }
+});
+
+/* speed presets */
+presetBtns.forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    presetBtns.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    speedRange.value = btn.getAttribute('data-ms');
+    speedValue.textContent = speedRange.value + ' ms';
+    if(running){ pauseAutoPlay(); startAutoPlay(); }
+  });
+});
+
+/* copy actions */
+copyParen.addEventListener('click', () => {
+  navigator.clipboard.writeText(parenthesisView.textContent).then(()=> alert('Parenthesis copied'));
+});
+copyJSON.addEventListener('click', () => {
+  navigator.clipboard.writeText(JSON.stringify({dims, m, s}, null, 2)).then(()=> alert('JSON copied'));
+});
+
+/* timeline click handled when rendering (each step div sets click) */
+
+/* ---- Init: compute default once and set UI ---- */
+(function init(){
+  runCompute();
+  // mark preset x1 by default
+  document.querySelector('.preset-btn[data-ms="700"]').classList.add('active');
+  speedValue.textContent = speedRange.value + ' ms';
+  playPauseBtn.disabled = false;
+  applyStep();
+})();
+</script>
+</body>
+</html>
